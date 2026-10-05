@@ -1,0 +1,12 @@
+metric,conventional_bb,unpipelined_slbb,pipelined_slbb
+occupied_slices,2279,1419,1449
+slice_luts,4540,2938,3960
+flip_flops,5085,4255,4342
+bram_tiles,131.5,11.0,12.0
+dsp48e1,11,5,9
+wns_ns,0.028,0.315,0.421
+tns_ns,0.000,0.000,0.000
+whs_ns,0.083,0.098,0.107
+ths_ns,0.000,0.000,0.000
+critical_path_delay_ns,9.322,8.869,9.052
+estimated_total_on_chip_power_W,0.187,0.159,0.167

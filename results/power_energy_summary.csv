@@ -1,0 +1,5 @@
+metric,conventional_bb,unpipelined_slbb,pipelined_slbb
+effective_throughput_instances_per_s,48.93,140.35,401.57
+throughput_efficiency_instances_per_s_per_W,261.64,882.71,2404.63
+estimated_120_instance_energy_J,0.4586,0.1359,0.0499
+mean_estimated_energy_per_instance_mJ,3.822,1.133,0.416

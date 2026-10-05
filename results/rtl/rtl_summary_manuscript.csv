@@ -1,0 +1,7 @@
+metric,conventional_bb,unpipelined_slbb,pipelined_slbb
+minimum_instance_latency_cycles,19484,5800,3079
+average_instance_latency_cycles,2043836,712494,249020
+maximum_instance_latency_cycles,12326653,4353777,1512421
+average_transaction_interval_cycles,1969296,683090,239377
+total_execution_cycles,245260506,85499515,29882532
+suite_execution_time_s_at_100MHz,2.453,0.855,0.299

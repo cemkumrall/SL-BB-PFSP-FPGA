@@ -1,0 +1,31 @@
+SL-BB ZedBoard Validation - Golden ta001 Signature
+
+Workload
+--------
+Taillard instance : ta001
+n                 : 20
+m                 : 5
+initial_ub        : 1278
+max_parents       : 50
+clock             : 100 MHz
+
+Expected telemetry from the supplied HLS project's existing C simulation
+--------------------------------------------------------------------------
+cnt_parents_popped       = 7
+cnt_cand_evaluated       = 128
+cnt_lb_evaluated         = 256
+cnt_direction_probes     = 14
+cnt_pruned_pre_commit    = 122
+cnt_states_committed     = 6
+peak_stack_depth         = 2
+max_c_fwd                = 368
+max_c_bwd                = 529
+max_lb1                  = 1450
+max_observed_time_val    = 1450
+max_sum_lb1_dir          = 26452
+cnt_bram_state_wr_words  = 114
+total_cycles_model       = 1576
+complete_flag            = 1
+overflow_flag            = 0
+
+LD2 turns ON only when this complete signature matches on the FPGA.

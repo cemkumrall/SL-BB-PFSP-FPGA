@@ -1,0 +1,13 @@
+Profiling Metric,Symbol,Mean ± Std,Median,IQR,Min – Max Range,Global Aggregate (120 Instances)
+Parents Popped (Fixed Prefix),$N_{pop}$,"20,000 ± 0","20,000",0,"20,000 – 20,000","2,400,000"
+Generated Candidate States,$N_c$,"564,325.28 ± 564,117.87","348,044.50","544,824.75","62,314.00 – 2,405,623.00","67,719,033"
+Pruned Transient States ($L_i=0$),$N_p$,"529,977.58 ± 534,723.23","325,197.00","534,768.50","42,144.00 – 2,268,231.00","63,597,310"
+Surviving Persistent States ($L_i=1$),$N_s$,"34,347.69 ± 32,084.93","22,572.50","7,269.50","20,113.00 – 139,418.00","4,121,723"
+Pruning / Transient Ratio (%),$1-\rho_L$,91.46 ± 4.99,93.33,6.92,67.63 – 96.99,93.91%
+Persistent Survivor Ratio (%),$\rho_L$,8.54 ± 4.99,6.67,6.92,3.01 – 32.37,6.09%
+State-Memory Traffic Reduction (%),$\eta_M$,88.83 ± 4.99,90.69,6.92,65.00 – 94.36,91.28%
+Baseline State Traffic (MB),$B_{conv}$,85.78 ± 85.75,52.90,82.81,9.47 – 365.65,"10,293.29 MB"
+Proposed SL-BB State Traffic (MB),$B_{SL-BB}$,7.48 ± 7.01,4.75,3.37,3.32 – 30.51,897.38 MB
+Baseline BRAM Writes ($10^6$ Words),$W_{conv}$,10.72 ± 10.72,6.61,10.35,1.18 – 45.71,"1,286.66 M Words"
+SL-BB BRAM Writes ($10^6$ Words),$W_{SL-BB}$,0.65 ± 0.61,0.43,0.14,0.38 – 2.65,78.31 M Words (93.91% reduction)
+Maximum Observed LB1 Value,$\max(LB_1)$,"7,102.79 ± 6,942.72","4,849.50","5,240.00","1,365.00 – 27,647.00","27,647 (uint16 safe: 100%)"
