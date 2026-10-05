@@ -36,4 +36,4 @@ The `board_validation/` directory contains the exact PL-only validation assets u
 State-lifetime profiling uses 20,000 parent expansions per instance. The matched RTL architectural comparison uses 50 parent expansions per instance. The ta001 physical validation run also uses a maximum of 50 and completes after 7. See `EXPERIMENT_CONTRACT.md`.
 
 ## Citation
-A versioned Zenodo DOI will be added after the public GitHub release is archived.
+A DOI for this reproducibility package is provided through Mendeley Data. The DOI will be added here after publication of the archived release.
