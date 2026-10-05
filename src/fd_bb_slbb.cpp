@@ -6,10 +6,10 @@
 
 /*
  * ==================================================================
- * SL-BB v4.0 (Pipelined II=1 Datapath + 22-BRAM State-Lifetime Engine)
- *   - Keeps exact 22 BRAM_18K (7.8%) footprint
- *   - Pipelines inner O(m) machine loops & survivor commit at II=1
- *   - Targets ~8x-10x RTL speedup over conventional baseline
+ * SL-BB v3.3 (High-Speedup, Timing-Clean, 22-BRAM Architecture)
+ *   1. Unified Single-Pass Bidirectional Job Probing (50% fewer mask scans)
+ *   2. Monotonic Completion-Time Hoisting (faster inner k-loops & <7.3ns timing)
+ *   3. Incremental Residual Workload & Single-Vector Path Restoration
  * ==================================================================
  */
 
@@ -75,7 +75,7 @@ static inline uint16_t pack_path_meta(uint16_t job, bool use_fwd) {
 
 
 /* ==================================================================
- * Top-level SL-BB v4.0 Accelerator
+ * Top-level SL-BB v3.3 Accelerator
  * ================================================================== */
 void fd_bb_slbb(
     const uint16_t p[MAX_N][MAX_M],
@@ -106,21 +106,16 @@ void fd_bb_slbb(
 
 
     /*
-     * 3. Active DFS State in fast Dual-Port / 1-cycle LUTRAM (0 BRAM)
-     *    Dual-port LUTRAM (ram_2p) allows simultaneous read + write
-     *    within II=1 pipelined update loops without port conflicts.
+     * 3. Active DFS State in fast 1-cycle LUTRAM (0 BRAM)
      */
     uint16_t cur_cfwd[32];
     uint16_t cur_cbwd[32];
     uint8_t  cur_used[512];
     uint32_t rem[32];
-#pragma HLS BIND_STORAGE variable=cur_cfwd type=ram_2p impl=lutram
-#pragma HLS BIND_STORAGE variable=cur_cbwd type=ram_2p impl=lutram
-#pragma HLS BIND_STORAGE variable=cur_used type=ram_2p impl=lutram
-#pragma HLS BIND_STORAGE variable=rem type=ram_2p impl=lutram
-#pragma HLS DEPENDENCE variable=cur_cfwd inter false
-#pragma HLS DEPENDENCE variable=cur_cbwd inter false
-#pragma HLS DEPENDENCE variable=rem inter false
+#pragma HLS BIND_STORAGE variable=cur_cfwd type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=cur_cbwd type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=cur_used type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=rem type=ram_1p impl=lutram
 
 
     /*
@@ -128,20 +123,18 @@ void fd_bb_slbb(
      */
     static uint32_t f_surv_tokens[MAX_N];
     static uint32_t b_surv_tokens[MAX_N];
-#pragma HLS BIND_STORAGE variable=f_surv_tokens type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=b_surv_tokens type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=f_surv_tokens type=ram_1p impl=bram
+#pragma HLS BIND_STORAGE variable=b_surv_tokens type=ram_1p impl=bram
 
 
     /*
      * Root initialization
      */
     for (int j = 0; j < n; ++j) {
-#pragma HLS PIPELINE II=1
         cur_used[j] = 0;
     }
 
     for (int k = 0; k < m; ++k) {
-#pragma HLS PIPELINE II=1
         cur_cfwd[k] = 0;
         cur_cbwd[k] = 0;
         rem[k] = 0;
@@ -149,7 +142,6 @@ void fd_bb_slbb(
 
     for (int j = 0; j < n; ++j) {
         for (int k = 0; k < m; ++k) {
-#pragma HLS PIPELINE II=1
             rem[k] += (uint32_t)p[j][k];
         }
     }
@@ -186,7 +178,7 @@ void fd_bb_slbb(
 
         /*
          * ----------------------------------------------------------
-         * Differential Backtracking & Child Descent (Pipelined II=1)
+         * Differential Backtracking & Child Descent
          * ----------------------------------------------------------
          */
         if (!is_root) {
@@ -211,7 +203,6 @@ void fd_bb_slbb(
                     (((meta >> 9) & 1U) == 0U);
 
                 for (int k = 0; k < m; ++k) {
-#pragma HLS PIPELINE II=1
 
                     uint16_t saved_val = restore_vec[active_depth][k];
 
@@ -252,7 +243,6 @@ void fd_bb_slbb(
                 uint32_t prev = 0;
 
                 for (int k = 0; k < m; ++k) {
-#pragma HLS PIPELINE II=1
 
                     uint16_t old_cf = cur_cfwd[k];
                     restore_vec[new_depth][k] = old_cf;
@@ -276,7 +266,6 @@ void fd_bb_slbb(
                 uint32_t next = 0;
 
                 for (int k = m - 1; k >= 0; --k) {
-#pragma HLS PIPELINE II=1
 
                     uint16_t old_cb = cur_cbwd[k];
                     restore_vec[new_depth][k] = old_cb;
@@ -310,8 +299,11 @@ void fd_bb_slbb(
 
         /*
          * ----------------------------------------------------------
-         * Unified Single-Pass Bidirectional Probing (Pipelined II=1)
+         * Unified Single-Pass Bidirectional Candidate Probing
          * ----------------------------------------------------------
+         * Scans cur_used[j] only ONCE per parent instead of twice,
+         * and hoists monotonic max_c_fwd / max_c_bwd checks outside
+         * the inner m-machine loops to shorten critical path & latency.
          */
         uint32_t sum_f = 0;
         uint32_t sum_b = 0;
@@ -325,12 +317,11 @@ void fd_bb_slbb(
                 continue;
             }
 
-            /* --- 1. Forward Token Evaluation (II=1: 1 cycle/machine!) --- */
+            /* --- 1. Forward Token Evaluation (k = 0 .. m-1) --- */
             uint32_t c_run_f = 0;
             uint32_t lb_f = 0;
 
             for (int k = 0; k < m; ++k) {
-#pragma HLS PIPELINE II=1
 
                 const uint16_t pj = p[j][k];
                 const uint16_t cf_parent = cur_cfwd[k];
@@ -357,6 +348,10 @@ void fd_bb_slbb(
                 }
             }
 
+            /*
+             * Monotonicity property: since p[j][k] >= 0, the final c_run_f
+             * at k = m-1 is guaranteed to be max_k c_fwd(j, k).
+             */
             const uint16_t ck_f_max = sat16(c_run_f, t);
             if (c_run_f > t.max_c_fwd) {
                 t.max_c_fwd = ck_f_max;
@@ -378,12 +373,11 @@ void fd_bb_slbb(
             }
 
 
-            /* --- 2. Backward Token Evaluation (II=1: 1 cycle/machine!) --- */
+            /* --- 2. Backward Token Evaluation (k = m-1 .. 0) --- */
             uint32_t c_run_b = 0;
             uint32_t lb_b = 0;
 
             for (int k = m - 1; k >= 0; --k) {
-#pragma HLS PIPELINE II=1
 
                 const uint16_t pj = p[j][k];
                 const uint16_t cf_parent = cur_cfwd[k];
@@ -410,6 +404,10 @@ void fd_bb_slbb(
                 }
             }
 
+            /*
+             * Monotonicity property: since p[j][k] >= 0, the final c_run_b
+             * at k = 0 is guaranteed to be max_k c_bwd(j, k).
+             */
             const uint16_t ck_b_max = sat16(c_run_b, t);
             if (c_run_b > t.max_c_bwd) {
                 t.max_c_bwd = ck_b_max;
@@ -485,7 +483,6 @@ void fd_bb_slbb(
                 while (
                     pos >= 0 &&
                     f_surv_tokens[pos] < key) {
-#pragma HLS PIPELINE II=1
 
                     f_surv_tokens[pos + 1] =
                         f_surv_tokens[pos];
@@ -508,7 +505,6 @@ void fd_bb_slbb(
                 while (
                     pos >= 0 &&
                     b_surv_tokens[pos] < key) {
-#pragma HLS PIPELINE II=1
 
                     b_surv_tokens[pos + 1] =
                         b_surv_tokens[pos];
@@ -522,10 +518,9 @@ void fd_bb_slbb(
 
 
         /*
-         * Deferred frontier commit (Pipelined II=1 -> 1 cycle/survivor!)
+         * Deferred frontier commit
          */
         for (int idx = 0; idx < count; ++idx) {
-#pragma HLS PIPELINE II=1
 
             const uint32_t tok =
                 use_fwd
